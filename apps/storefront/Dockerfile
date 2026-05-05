@@ -1,0 +1,28 @@
+FROM node:20-alpine
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+
+WORKDIR /app
+
+COPY package.json ./
+RUN printf "auto-install-peers=true\nstrict-peer-dependencies=false\nshamefully-hoist=true\nengine-strict=true\n" > .npmrc
+RUN pnpm install --no-frozen-lockfile
+
+COPY . .
+
+# NEXT_PUBLIC_* vars are baked in at build time - set these as Railway variables
+ARG NEXT_PUBLIC_MEDUSA_BACKEND_URL
+ARG NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+ARG NEXT_PUBLIC_BASE_URL
+ARG NEXT_PUBLIC_DEFAULT_REGION=us
+ARG REVALIDATE_SECRET
+ENV NEXT_PUBLIC_MEDUSA_BACKEND_URL=$NEXT_PUBLIC_MEDUSA_BACKEND_URL
+ENV NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=$NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL
+ENV NEXT_PUBLIC_DEFAULT_REGION=$NEXT_PUBLIC_DEFAULT_REGION
+ENV REVALIDATE_SECRET=$REVALIDATE_SECRET
+ENV NEXT_TELEMETRY_DISABLED=1
+
+RUN pnpm build
+
+EXPOSE 8000
+CMD ["pnpm", "start"]
